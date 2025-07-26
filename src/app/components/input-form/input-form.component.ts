@@ -16,16 +16,16 @@ export class InputFormComponent {
 
   formData: ImovelData = {
     objetivo: 'alugar',
-    valorAvaliacao: null as any,
-    valorArrematacao: null as any,
+    valorAvaliacao: 0, // Inicializar com 0 em vez de null
+    valorArrematacao: 0, // Inicializar com 0 em vez de null
     seraFinanciado: false,
     usaraAdvogado: false,
     percentualITBI: 2,
-    valorDesocupacao: null as any,
-    valorReforma: null as any,
-    valorCondominio: null as any,
-    valorIPTUMensal: null as any,
-    outrosGastosMensais: null as any,
+    valorDesocupacao: 0, // Inicializar com 0 em vez de null
+    valorReforma: 0, // Inicializar com 0 em vez de null
+    valorCondominio: 0, // Inicializar com 0 em vez de null
+    valorIPTUMensal: 0, // Inicializar com 0 em vez de null
+    outrosGastosMensais: 0, // Inicializar com 0 em vez de null
     periodoAnalise: 12
   };
 
@@ -59,7 +59,7 @@ export class InputFormComponent {
       return;
     }
 
-    // Converter valores null para 0 antes de enviar
+    // Converter valores 0 para valores válidos antes de enviar
     const formDataToSubmit: ImovelData = {
       ...this.formData,
       valorAvaliacao: this.formData.valorAvaliacao || 0,
@@ -76,16 +76,16 @@ export class InputFormComponent {
 
   onObjetivoChange() {
     // Limpar campos condicionais quando o objetivo muda
-    this.formData.valorEstimadoVenda = null as any;
-    this.formData.valorAluguelMensal = null as any;
+    this.formData.valorEstimadoVenda = undefined;
+    this.formData.valorAluguelMensal = undefined;
   }
 
   onFinanciamentoChange() {
     // Limpar campos de financiamento quando não será financiado
     if (!this.formData.seraFinanciado) {
-      this.formData.taxaJurosAnual = null as any;
-      this.formData.valorEntrada = null as any;
-      this.formData.prazoFinanciamentoAnos = null as any;
+      this.formData.taxaJurosAnual = undefined;
+      this.formData.valorEntrada = undefined;
+      this.formData.prazoFinanciamentoAnos = undefined;
     } else {
       // Definir valores padrão quando financiado
       if (!this.formData.prazoFinanciamentoAnos) {
@@ -97,7 +97,7 @@ export class InputFormComponent {
   onAdvogadoChange() {
     // Limpar honorários quando não usar advogado
     if (!this.formData.usaraAdvogado) {
-      this.formData.honorariosAdvogado = null as any;
+      this.formData.honorariosAdvogado = undefined;
     }
   }
 
@@ -119,16 +119,17 @@ export class InputFormComponent {
 
   // Método para formatar entrada de valores monetários
   onInputFocus(event: any) {
-    // Limpar o campo se estiver com valor 0 ou vazio
-    if (event.target.value === '0' || event.target.value === '') {
+    // Limpar o campo se estiver com valor 0
+    if (event.target.value === '0') {
       event.target.value = '';
     }
   }
 
-  // Método para garantir que valores vazios sejam tratados como null
+  // Método para garantir que valores vazios sejam tratados adequadamente
   onInputBlur(event: any, field: keyof ImovelData) {
-    if (event.target.value === '' || event.target.value === '0') {
-      (this.formData as any)[field] = null;
+    if (event.target.value === '' || event.target.value === null) {
+      (this.formData as any)[field] = 0;
+      event.target.value = '0';
     }
   }
 }

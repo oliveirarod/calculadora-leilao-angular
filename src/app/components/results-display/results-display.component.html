@@ -25,14 +25,6 @@
             <span>Valor de Arrematação {{ formData.seraFinanciado ? '(Entrada)' : '' }}:</span>
             <span>{{ formatCurrency(results.valorArrematacaoParaCustos) }}</span>
           </div>
-          <div *ngIf="formData.seraFinanciado && results.valorFinanciado" class="cost-item info-item">
-            <span>💡 Valor Total Arrematado:</span>
-            <span>{{ formatCurrency(formData.valorArrematacao) }}</span>
-          </div>
-          <div *ngIf="formData.seraFinanciado && results.valorFinanciado" class="cost-item info-item">
-            <span>💡 Valor Financiado:</span>
-            <span>{{ formatCurrency(results.valorFinanciado) }}</span>
-          </div>
           <div class="cost-item">
             <span>Taxa do Leiloeiro (5%):</span>
             <span>{{ formatCurrency(results.taxaLeiloeiro) }}</span>
@@ -66,7 +58,7 @@
 
       <!-- Informações de Financiamento -->
       <div *ngIf="hasFinanciamento" class="result-section">
-        <h4>💳 Informações de Financiamento:</h4>
+        <h4>💳 Informações de Financiamento (SAC):</h4>
         <div class="financing-details">
           <div class="cost-item">
             <span>Valor da Entrada:</span>
@@ -85,16 +77,16 @@
             <span>{{ formData.prazoFinanciamentoAnos || 30 }} anos</span>
           </div>
           <div class="cost-item">
-            <span>Juros Anuais Estimados:</span>
-            <span>{{ formatCurrency(results.jurosAnuaisEstimados!) }}</span>
+            <span>Sistema de Amortização:</span>
+            <span>SAC (Sistema de Amortização Constante)</span>
           </div>
           <div class="cost-item">
-            <span>Juros Totais Estimados ({{ formData.prazoFinanciamentoAnos || 30 }} anos):</span>
+            <span>Juros Totais Estimados:</span>
             <span>{{ formatCurrency(results.jurosTotaisEstimados!) }}</span>
           </div>
           <div class="cost-item">
-            <span>Seguros Obrigatórios (anual):</span>
-            <span>{{ formatCurrency(results.segurosObrigatorios!) }}</span>
+            <span>Seguros Obrigatórios (total):</span>
+            <span>{{ formatCurrency(results.segurosObrigatorios! * (formData.prazoFinanciamentoAnos || 30)) }}</span>
           </div>
           <div class="cost-item total-item">
             <span><strong>Total Estimado do Financiamento:</strong></span>
@@ -107,24 +99,30 @@
           <h5>📅 Estimativa de Gastos Mensais com Financiamento:</h5>
           <div class="financing-monthly-details">
             <div class="cost-item">
-              <span>Parcela Mensal Estimada (Principal + Juros):</span>
+              <span>Primeira Parcela SAC (Principal + Juros):</span>
               <span>{{ formatCurrency(results.parcelaMensalEstimada!) }}</span>
             </div>
             <div class="cost-item">
               <span>Seguros Obrigatórios Mensais (DFI + MIP):</span>
               <span>{{ formatCurrency(results.segurosObrigatoriosMensal!) }}</span>
             </div>
+            <div class="cost-item">
+              <span>Taxa de Administração (estimada):</span>
+              <span>{{ formatCurrency(25) }}</span>
+            </div>
             <div class="cost-item total-item">
-              <span><strong>Total Mensal do Financiamento:</strong></span>
-              <span><strong>{{ formatCurrency(results.parcelaMensalEstimada! + results.segurosObrigatoriosMensal!) }}</strong></span>
+              <span><strong>Total da Primeira Parcela:</strong></span>
+              <span><strong>{{ formatCurrency(results.parcelaMensalEstimada! + results.segurosObrigatoriosMensal! + 25) }}</strong></span>
             </div>
           </div>
           <div class="financing-explanation">
             <small>
-              💡 <strong>Composição da Parcela Mensal:</strong><br>
-              • <strong>Principal + Juros:</strong> Valor calculado pela Tabela Price<br>
-              • <strong>Seguros Obrigatórios:</strong> DFI (Danos Físicos do Imóvel) + MIP (Morte e Invalidez Permanente)<br>
-              • <strong>Taxa de Administração:</strong> Pode variar conforme o banco (não incluída na estimativa)
+              💡 <strong>Sistema SAC (Amortização Constante):</strong><br>
+              • <strong>Primeira Parcela:</strong> É a maior parcela do financiamento (mostrada acima)<br>
+              • <strong>Parcelas Decrescentes:</strong> Cada mês a parcela diminui um pouco<br>
+              • <strong>Amortização Constante:</strong> Mesmo valor de amortização do principal a cada mês<br>
+              • <strong>Juros Decrescentes:</strong> Os juros diminuem conforme o saldo devedor reduz<br>
+              • <strong>Vantagem:</strong> Você paga menos juros totais comparado ao sistema Price
             </small>
           </div>
         </div>
@@ -147,21 +145,74 @@
       <div *ngIf="isVenda && results.ganhoBruto !== undefined" class="result-section">
         <h4>📊 Análise de Revenda:</h4>
         <div class="return-analysis">
-          <div class="cost-item">
-            <span>Ganho Bruto:</span>
-            <span [class]="results.ganhoBruto! > 0 ? 'positive' : 'negative'">
-              {{ formatCurrency(results.ganhoBruto!) }}
-            </span>
+          <div class="sale-breakdown">
+            <h5>Detalhamento da Operação de Venda:</h5>
+            <div class="cost-item">
+              <span>Valor Estimado de Venda:</span>
+              <span>{{ formatCurrency(formData.valorEstimadoVenda!) }}</span>
+            </div>
+            <div class="cost-item">
+              <span>(-) Custo Total de Aquisição:</span>
+              <span class="negative">{{ formatCurrency(results.custoTotalVenda!) }}</span>
+            </div>
+            <div class="cost-item">
+              <span>Ganho Bruto:</span>
+              <span [class]="results.ganhoBruto! > 0 ? 'positive' : 'negative'">
+                {{ formatCurrency(results.ganhoBruto!) }}
+              </span>
+            </div>
+            <div *ngIf="results.impostoRenda! > 0" class="cost-item">
+              <span>(-) Imposto de Renda (15%):</span>
+              <span class="negative">{{ formatCurrency(results.impostoRenda!) }}</span>
+            </div>
+            <div class="cost-item total-item">
+              <span><strong>Ganho Líquido:</strong></span>
+              <span [class]="results.ganhoLiquido! > 0 ? 'positive' : 'negative'">
+                <strong>{{ formatCurrency(results.ganhoLiquido!) }}</strong>
+              </span>
+            </div>
           </div>
-          <div *ngIf="results.impostoRenda! > 0" class="cost-item">
-            <span>Imposto de Renda (15%):</span>
-            <span class="negative">{{ formatCurrency(results.impostoRenda!) }}</span>
-          </div>
-          <div class="cost-item total-item">
-            <span><strong>Ganho Líquido:</strong></span>
-            <span [class]="results.ganhoLiquido! > 0 ? 'positive' : 'negative'">
-              <strong>{{ formatCurrency(results.ganhoLiquido!) }}</strong>
-            </span>
+          
+          <div class="sale-metrics">
+            <h5>Métricas de Rentabilidade:</h5>
+            <div class="metrics-explanation">
+              <small>
+                💡 <strong>Entenda as Métricas:</strong><br>
+                • <strong>Margem de Lucro:</strong> Percentual de lucro líquido sobre o investimento total<br>
+                • <strong>Retorno sobre Investimento (ROI):</strong> Quanto você ganha para cada real investido<br>
+                • <strong>Valores Positivos:</strong> Indicam lucro na operação<br>
+                • <strong>Valores Negativos:</strong> Indicam prejuízo na operação
+              </small>
+            </div>
+            <div class="cost-item">
+              <span>Margem de Lucro:</span>
+              <span [class]="results.margemLucro! > 0 ? 'positive' : 'negative'">
+                {{ formatPercentage(results.margemLucro!) }}
+              </span>
+            </div>
+            <div class="cost-item">
+              <span>Retorno sobre Investimento (ROI):</span>
+              <span [class]="results.margemLucro! > 0 ? 'positive' : 'negative'">
+                {{ formatPercentage(results.margemLucro!) }}
+              </span>
+            </div>
+            <div class="profitability-interpretation">
+              <small>
+                <strong>Interpretação:</strong>
+                <span *ngIf="results.margemLucro! > 15" class="positive">
+                  📈 Excelente rentabilidade (acima de 15%)
+                </span>
+                <span *ngIf="results.margemLucro! > 5 && results.margemLucro! <= 15" class="warning">
+                  📊 Rentabilidade moderada (5% a 15%)
+                </span>
+                <span *ngIf="results.margemLucro! <= 5 && results.margemLucro! > 0" class="warning">
+                  📉 Baixa rentabilidade (até 5%)
+                </span>
+                <span *ngIf="results.margemLucro! <= 0" class="negative">
+                  ❌ Operação com prejuízo
+                </span>
+              </small>
+            </div>
           </div>
         </div>
       </div>
@@ -171,6 +222,7 @@
         <h4>🏠 Análise de Aluguel:</h4>
         <div class="rental-analysis">
           <div class="rental-breakdown">
+            <h5>Detalhamento da Renda Mensal:</h5>
             <div class="cost-item">
               <span>Valor do Aluguel Mensal:</span>
               <span>{{ formatCurrency(formData.valorAluguelMensal!) }}</span>
@@ -190,12 +242,57 @@
               </span>
             </div>
           </div>
-          <div class="return-box" [class]="results.retornoAnualAluguel! >= 6 ? 'positive' : 'warning'">
-            <div class="return-value">
-              Retorno Anual Líquido: {{ formatPercentage(results.retornoAnualAluguel!) }}
+          
+          <div class="return-metrics">
+            <h5>Análise de Retorno:</h5>
+            <div *ngIf="!hasFinanciamento" class="return-box" [class]="results.retornoAnualAluguel! >= 6 ? 'positive' : 'warning'">
+              <div class="return-value">
+                Retorno Anual Líquido: {{ formatPercentage(results.retornoAnualAluguel!) }}
+              </div>
+              <div class="return-detail">
+                Baseado na renda líquida sobre o investimento total
+              </div>
             </div>
-            <div class="return-detail">
-              Baseado na renda líquida (descontando condomínio e IPTU)
+            
+            <div *ngIf="hasFinanciamento" class="financing-return">
+              <div class="cost-item">
+                <span>Renda Líquida Mensal (após descontos):</span>
+                <span [class]="results.rendaLiquidaMensal! > 0 ? 'positive' : 'negative'">
+                  {{ formatCurrency(results.rendaLiquidaMensal!) }}
+                </span>
+              </div>
+              <div class="cost-item">
+                <span>(-) Primeira Parcela + Seguros do Financiamento:</span>
+                <span class="negative">{{ formatCurrency(results.parcelaMensalEstimada! + results.segurosObrigatoriosMensal!) }}</span>
+              </div>
+              <div class="cost-item">
+                <span>(-) Taxa de Administração:</span>
+                <span class="negative">{{ formatCurrency(25) }}</span>
+              </div>
+              <div class="cost-item">
+                <span>(-) Outros Gastos Mensais:</span>
+                <span class="negative">{{ formatCurrency(formData.outrosGastosMensais) }}</span>
+              </div>
+              <div class="cost-item total-item">
+                <span><strong>Fluxo de Caixa Mensal (Inicial):</strong></span>
+                <span [class]="results.fluxoCaixaMensal! > 0 ? 'positive' : 'negative'">
+                  <strong>{{ formatCurrency(results.fluxoCaixaMensal!) }}</strong>
+                </span>
+              </div>
+              <div class="return-box" [class]="results.retornoAnualComFinanciamento! >= 6 ? 'positive' : 'warning'">
+                <div class="return-value">
+                  Retorno Anual com Financiamento: {{ formatPercentage(results.retornoAnualComFinanciamento!) }}
+                </div>
+                <div class="return-detail">
+                  Baseado no fluxo de caixa líquido sobre o investimento inicial
+                </div>
+              </div>
+              <div class="financing-note">
+                <small>
+                  💡 <strong>Nota:</strong> O fluxo de caixa mostrado considera a primeira parcela (maior). 
+                  Com o tempo, as parcelas diminuem no sistema SAC, melhorando o fluxo de caixa.
+                </small>
+              </div>
             </div>
           </div>
         </div>
@@ -236,12 +333,18 @@
               <span>{{ formatCurrency(results.custoMensalTotal) }}</span>
             </div>
             <div class="cost-item">
-              <span>Parcela + Seguros do Financiamento:</span>
-              <span>{{ formatCurrency(results.parcelaMensalEstimada! + results.segurosObrigatoriosMensal!) }}</span>
+              <span>Primeira Parcela + Seguros + Taxa Admin:</span>
+              <span>{{ formatCurrency(results.parcelaMensalEstimada! + results.segurosObrigatoriosMensal! + 25) }}</span>
             </div>
             <div class="cost-item total-item highlight">
-              <span><strong>CUSTO MENSAL TOTAL:</strong></span>
+              <span><strong>CUSTO MENSAL TOTAL (Inicial):</strong></span>
               <span><strong>{{ formatCurrency(results.custoMensalComFinanciamento) }}</strong></span>
+            </div>
+            <div class="sac-note">
+              <small>
+                💡 <strong>Sistema SAC:</strong> Este é o custo da primeira parcela (maior). 
+                A cada mês o custo diminui conforme as parcelas do financiamento reduzem.
+              </small>
             </div>
           </div>
           
@@ -252,7 +355,7 @@
               <span>{{ formatCurrency(results.custoTotalPeriodo) }}</span>
             </div>
             <div *ngIf="results.custoMensalComFinanciamento" class="cost-item">
-              <span>Custo Total no Período (com financiamento):</span>
+              <span>Custo Total no Período (com financiamento inicial):</span>
               <span>{{ formatCurrency(results.custoMensalComFinanciamento * formData.periodoAnalise) }}</span>
             </div>
           </div>

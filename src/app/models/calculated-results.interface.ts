@@ -26,10 +26,14 @@ export interface CalculatedResults {
   ganhoBruto?: number;
   impostoRenda?: number;
   ganhoLiquido?: number;
+  custoTotalVenda?: number; // Novo campo para custo total na venda
+  margemLucro?: number; // Novo campo para margem de lucro
   
   // Análise de rentabilidade (aluguel)
   retornoAnualAluguel?: number;
+  retornoAnualComFinanciamento?: number; // Novo campo para retorno com financiamento
   rendaLiquidaMensal?: number; // Novo campo para renda líquida (descontando condomínio e IPTU)
+  fluxoCaixaMensal?: number; // Novo campo para fluxo de caixa mensal com financiamento
   
   // Gastos mensais
   custoMensalTotal: number;

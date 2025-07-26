@@ -33,85 +33,102 @@ export class CalculationService {
     // Usar o IPTU informado pelo usuário ou o calculado automaticamente
     const iptuMensalFinal = data.valorIPTUMensal > 0 ? data.valorIPTUMensal : iptuMensalCalculado;
     
-    // Cálculos de financiamento (baseado apenas no valor de arrematação)
+    // Cálculos de financiamento usando SAC (Sistema de Amortização Constante)
     let valorFinanciado: number | undefined;
-    let jurosAnuaisEstimados: number | undefined;
     let jurosTotaisEstimados: number | undefined;
     let segurosObrigatorios: number | undefined;
     let parcelaMensalEstimada: number | undefined;
     let segurosObrigatoriosMensal: number | undefined;
     let totalFinanciamento: number | undefined;
     let valorEntradaFinal: number | undefined;
-    let valorArrematacaoParaCustos: number; // Novo campo para distinguir o valor na tabela de custos
+    let valorArrematacaoParaCustos: number; 
     
     if (data.seraFinanciado && data.taxaJurosAnual) {
       const entrada = data.valorEntrada || (data.valorArrematacao * CALCULATION_CONSTANTS.ENTRADA_PADRAO);
       valorEntradaFinal = entrada;
       valorFinanciado = data.valorArrematacao - entrada;
       
-      // Para financiamento, o valor de arrematação na tabela de custos deve ser apenas a entrada
       valorArrematacaoParaCustos = entrada;
       
-      jurosAnuaisEstimados = valorFinanciado * (data.taxaJurosAnual / 100);
-      
       const prazoAnos = data.prazoFinanciamentoAnos || CALCULATION_CONSTANTS.PRAZO_FINANCIAMENTO_PADRAO;
-      jurosTotaisEstimados = jurosAnuaisEstimados * prazoAnos;
+      const prazoMeses = prazoAnos * 12;
+      const taxaMensal = (data.taxaJurosAnual / 100) / 12;
       
       segurosObrigatoriosMensal = valorFinanciado * CALCULATION_CONSTANTS.SEGUROS_OBRIGATORIOS_MENSAL;
       segurosObrigatorios = segurosObrigatoriosMensal * 12; // anual
       
-      // Cálculo mais preciso da parcela mensal usando a fórmula de Price
-      const prazoMeses = prazoAnos * 12;
-      const taxaMensal = (data.taxaJurosAnual / 100) / 12;
+      // Cálculo SAC (Sistema de Amortização Constante)
+      const amortizacaoMensal = valorFinanciado / prazoMeses;
       
-      if (taxaMensal > 0) {
-        const fatorPrice = Math.pow(1 + taxaMensal, prazoMeses);
-        parcelaMensalEstimada = valorFinanciado * (taxaMensal * fatorPrice) / (fatorPrice - 1);
-      } else {
-        parcelaMensalEstimada = valorFinanciado / prazoMeses;
-      }
+      // Primeira parcela (maior parcela no SAC) - Esta é a estimativa que vamos mostrar
+      const jurosPrimeiraParcela = valorFinanciado * taxaMensal;
+      parcelaMensalEstimada = amortizacaoMensal + jurosPrimeiraParcela;
       
-      // Total dos custos de financiamento
-      totalFinanciamento = jurosTotaisEstimados + (segurosObrigatorios * prazoAnos);
+      // Cálculo dos juros totais no SAC
+      // Fórmula: Juros Totais = (Valor Financiado × Taxa Mensal × (Prazo + 1)) / 2
+      jurosTotaisEstimados = (valorFinanciado * taxaMensal * (prazoMeses + 1)) / 2;
+      
+      // Cálculo do valor total do financiamento
+      const taxaAdministracaoMensal = 25; // Valor fixo baseado na simulação da Caixa
+      const segurosTotal = segurosObrigatoriosMensal * prazoMeses;
+      const taxaAdministracaoTotal = taxaAdministracaoMensal * prazoMeses;
+      
+      totalFinanciamento = valorFinanciado + jurosTotaisEstimados + segurosTotal + taxaAdministracaoTotal;
     } else {
-      // Sem financiamento, o valor de arrematação permanece o total
       valorArrematacaoParaCustos = data.valorArrematacao;
     }
     
-    // Custo total de aquisição (usando o valor correto baseado no financiamento)
+    // Custo total de aquisição
     const custoTotalAquisicao = valorArrematacaoParaCustos + taxaLeiloeiro + itbi + 
                                custosCartorarios + honorariosAdvogado + 
                                data.valorDesocupacao + data.valorReforma;
     
-    // Análise de rentabilidade para venda (apenas se objetivo for vender)
+    // Análise de rentabilidade para venda
     let ganhoBruto: number | undefined;
     let impostoRenda: number | undefined;
     let ganhoLiquido: number | undefined;
+    let custoTotalVenda: number | undefined;
+    let margemLucro: number | undefined;
     
     if (data.objetivo === 'vender' && data.valorEstimadoVenda) {
-      ganhoBruto = data.valorEstimadoVenda - data.valorArrematacao;
-      const ganhoCapital = data.valorEstimadoVenda - custoTotalAquisicao;
+      custoTotalVenda = data.valorArrematacao + taxaLeiloeiro + itbi + custosCartorarios + 
+                       honorariosAdvogado + data.valorDesocupacao + data.valorReforma;
       
-      if (ganhoCapital > 0) {
-        impostoRenda = ganhoCapital * CALCULATION_CONSTANTS.ALIQUOTA_IR_GANHO_CAPITAL;
+      ganhoBruto = data.valorEstimadoVenda - custoTotalVenda;
+      
+      if (ganhoBruto > 0) {
+        impostoRenda = ganhoBruto * CALCULATION_CONSTANTS.ALIQUOTA_IR_GANHO_CAPITAL;
+        ganhoLiquido = ganhoBruto - impostoRenda;
       } else {
         impostoRenda = 0;
+        ganhoLiquido = ganhoBruto;
       }
       
-      ganhoLiquido = ganhoBruto - (taxaLeiloeiro + itbi + custosCartorarios + 
-                                  honorariosAdvogado + data.valorDesocupacao + 
-                                  data.valorReforma + impostoRenda);
+      margemLucro = custoTotalVenda > 0 ? (ganhoLiquido / custoTotalVenda) * 100 : 0;
     }
     
-    // Análise de rentabilidade para aluguel (apenas se objetivo for alugar)
+    // Análise de rentabilidade para aluguel
     let retornoAnualAluguel: number | undefined;
     let rendaLiquidaMensal: number | undefined;
+    let retornoAnualComFinanciamento: number | undefined;
+    let fluxoCaixaMensal: number | undefined;
     
     if (data.objetivo === 'alugar' && data.valorAluguelMensal) {
-      // Descontar condomínio e IPTU da renda mensal
       rendaLiquidaMensal = data.valorAluguelMensal - data.valorCondominio - iptuMensalFinal;
-      const rendaAnual = rendaLiquidaMensal * 12;
-      retornoAnualAluguel = (rendaAnual / custoTotalAquisicao) * 100;
+      
+      if (data.seraFinanciado && parcelaMensalEstimada && segurosObrigatoriosMensal) {
+        const investimentoInicial = custoTotalAquisicao;
+        fluxoCaixaMensal = rendaLiquidaMensal - parcelaMensalEstimada - segurosObrigatoriosMensal - data.outrosGastosMensais - 25; // Inclui taxa de administração
+        
+        const rendaAnualLiquida = rendaLiquidaMensal * 12;
+        retornoAnualAluguel = (rendaAnualLiquida / investimentoInicial) * 100;
+        
+        const fluxoCaixaAnual = fluxoCaixaMensal * 12;
+        retornoAnualComFinanciamento = fluxoCaixaAnual > 0 ? (fluxoCaixaAnual / investimentoInicial) * 100 : 0;
+      } else {
+        const rendaAnualLiquida = rendaLiquidaMensal * 12;
+        retornoAnualAluguel = (rendaAnualLiquida / custoTotalAquisicao) * 100;
+      }
     }
     
     // Gastos mensais
@@ -121,7 +138,7 @@ export class CalculationService {
     // Custo mensal com financiamento
     let custoMensalComFinanciamento: number | undefined;
     if (data.seraFinanciado && parcelaMensalEstimada && segurosObrigatoriosMensal) {
-      custoMensalComFinanciamento = custoMensalTotal + parcelaMensalEstimada + segurosObrigatoriosMensal;
+      custoMensalComFinanciamento = custoMensalTotal + parcelaMensalEstimada + segurosObrigatoriosMensal + 25; // Inclui taxa de administração
     }
     
     // Comparações
@@ -135,8 +152,10 @@ export class CalculationService {
       custoTotalAquisicao,
       percentualEconomia,
       retornoAnualAluguel,
+      retornoAnualComFinanciamento,
       valorFinanciado,
-      rendaLiquidaMensal
+      rendaLiquidaMensal,
+      fluxoCaixaMensal
     });
     
     return {
@@ -149,8 +168,7 @@ export class CalculationService {
       valorReforma: data.valorReforma,
       valorFinanciado,
       valorEntradaFinal,
-      valorArrematacaoParaCustos, // Novo campo
-      jurosAnuaisEstimados,
+      valorArrematacaoParaCustos,
       jurosTotaisEstimados,
       segurosObrigatorios,
       parcelaMensalEstimada,
@@ -160,8 +178,12 @@ export class CalculationService {
       ganhoBruto,
       impostoRenda,
       ganhoLiquido,
+      custoTotalVenda,
+      margemLucro,
       retornoAnualAluguel,
-      rendaLiquidaMensal, // Novo campo
+      retornoAnualComFinanciamento,
+      rendaLiquidaMensal,
+      fluxoCaixaMensal,
       custoMensalTotal,
       custoTotalPeriodo,
       custoMensalComFinanciamento,
@@ -182,7 +204,6 @@ export class CalculationService {
     );
     
     if (!faixa) {
-      // Fallback para o cálculo padrão
       return (valorVenal * CALCULATION_CONSTANTS.IPTU_ANUAL_PADRAO) / 12;
     }
     
@@ -193,7 +214,6 @@ export class CalculationService {
   private gerarAlertas(data: ImovelData, calculos: any): Alerta[] {
     const alertas: Alerta[] = [];
     
-    // Alerta para imóvel ocupado
     if (data.valorDesocupacao > 0) {
       alertas.push({
         tipo: 'warning',
@@ -202,7 +222,6 @@ export class CalculationService {
       });
     }
     
-    // Alerta para alto custo de reforma
     if (data.valorReforma > data.valorArrematacao * CALCULATION_CONSTANTS.LIMITE_REFORMA_ALERTA) {
       alertas.push({
         tipo: 'warning',
@@ -211,7 +230,6 @@ export class CalculationService {
       });
     }
     
-    // Alerta para baixa economia
     if (calculos.percentualEconomia < CALCULATION_CONSTANTS.LIMITE_ECONOMIA_BAIXA * 100 && data.valorAvaliacao > 0) {
       alertas.push({
         tipo: 'info',
@@ -220,17 +238,16 @@ export class CalculationService {
       });
     }
     
-    // Alerta para baixo retorno no aluguel (considerando renda líquida)
-    if (data.objetivo === 'alugar' && calculos.retornoAnualAluguel && 
-        calculos.retornoAnualAluguel < CALCULATION_CONSTANTS.LIMITE_RETORNO_BAIXO * 100) {
+    const retornoParaAnalise = data.seraFinanciado ? calculos.retornoAnualComFinanciamento : calculos.retornoAnualAluguel;
+    if (data.objetivo === 'alugar' && retornoParaAnalise !== undefined && 
+        retornoParaAnalise < CALCULATION_CONSTANTS.LIMITE_RETORNO_BAIXO * 100) {
       alertas.push({
         tipo: 'warning',
         titulo: 'Baixo Retorno no Aluguel',
-        descricao: `O retorno anual líquido está abaixo de ${CALCULATION_CONSTANTS.LIMITE_RETORNO_BAIXO * 100}%. Considere outras opções de investimento.`
+        descricao: `O retorno anual está abaixo de ${CALCULATION_CONSTANTS.LIMITE_RETORNO_BAIXO * 100}%. Considere outras opções de investimento.`
       });
     }
     
-    // Alerta para renda líquida negativa no aluguel
     if (data.objetivo === 'alugar' && calculos.rendaLiquidaMensal && calculos.rendaLiquidaMensal <= 0) {
       alertas.push({
         tipo: 'warning',
@@ -239,7 +256,14 @@ export class CalculationService {
       });
     }
     
-    // Alerta para financiamento com juros altos
+    if (data.objetivo === 'alugar' && data.seraFinanciado && calculos.fluxoCaixaMensal && calculos.fluxoCaixaMensal <= 0) {
+      alertas.push({
+        tipo: 'warning',
+        titulo: 'Fluxo de Caixa Negativo',
+        descricao: 'Após pagar o financiamento e gastos mensais, você terá fluxo de caixa negativo. Considere aumentar a entrada ou renegociar condições.'
+      });
+    }
+    
     if (data.seraFinanciado && data.taxaJurosAnual && data.taxaJurosAnual > 12) {
       alertas.push({
         tipo: 'warning',
@@ -248,7 +272,6 @@ export class CalculationService {
       });
     }
     
-    // Alerta para boa oportunidade
     if (calculos.percentualEconomia > 20) {
       alertas.push({
         tipo: 'success',
@@ -257,7 +280,6 @@ export class CalculationService {
       });
     }
     
-    // Alerta específico para uso próprio
     if (data.objetivo === 'uso proprio') {
       alertas.push({
         tipo: 'info',
@@ -269,3 +291,4 @@ export class CalculationService {
     return alertas;
   }
 }
+
