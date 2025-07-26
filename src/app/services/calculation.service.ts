@@ -27,15 +27,8 @@ export class CalculationService {
     
     const honorariosAdvogado = data.usaraAdvogado ? (data.honorariosAdvogado || 0) : 0;
     
-    // Custo total de aquisição
-    const custoTotalAquisicao = data.valorArrematacao + taxaLeiloeiro + itbi + 
-                               custosCartorarios + honorariosAdvogado + 
-                               data.valorDesocupacao + data.valorReforma;
-    
-    // Cálculo automático do IPTU mensal
-    const iptuMensalCalculado = data.valorAvaliacao > 0 
-      ? (data.valorAvaliacao * CALCULATION_CONSTANTS.IPTU_ANUAL_PADRAO) / 12
-      : 0;
+    // Cálculo do IPTU usando a nova tabela de faixas
+    const iptuMensalCalculado = this.calcularIPTUPorFaixa(data.valorAvaliacao);
     
     // Usar o IPTU informado pelo usuário ou o calculado automaticamente
     const iptuMensalFinal = data.valorIPTUMensal > 0 ? data.valorIPTUMensal : iptuMensalCalculado;
@@ -48,10 +41,17 @@ export class CalculationService {
     let parcelaMensalEstimada: number | undefined;
     let segurosObrigatoriosMensal: number | undefined;
     let totalFinanciamento: number | undefined;
+    let valorEntradaFinal: number | undefined;
+    let valorArrematacaoParaCustos: number; // Novo campo para distinguir o valor na tabela de custos
     
     if (data.seraFinanciado && data.taxaJurosAnual) {
       const entrada = data.valorEntrada || (data.valorArrematacao * CALCULATION_CONSTANTS.ENTRADA_PADRAO);
+      valorEntradaFinal = entrada;
       valorFinanciado = data.valorArrematacao - entrada;
+      
+      // Para financiamento, o valor de arrematação na tabela de custos deve ser apenas a entrada
+      valorArrematacaoParaCustos = entrada;
+      
       jurosAnuaisEstimados = valorFinanciado * (data.taxaJurosAnual / 100);
       
       const prazoAnos = data.prazoFinanciamentoAnos || CALCULATION_CONSTANTS.PRAZO_FINANCIAMENTO_PADRAO;
@@ -60,14 +60,28 @@ export class CalculationService {
       segurosObrigatoriosMensal = valorFinanciado * CALCULATION_CONSTANTS.SEGUROS_OBRIGATORIOS_MENSAL;
       segurosObrigatorios = segurosObrigatoriosMensal * 12; // anual
       
-      // Estimativa simplificada da parcela mensal
+      // Cálculo mais preciso da parcela mensal usando a fórmula de Price
       const prazoMeses = prazoAnos * 12;
-      const jurosMensal = jurosAnuaisEstimados / 12;
-      parcelaMensalEstimada = (valorFinanciado / prazoMeses) + jurosMensal;
+      const taxaMensal = (data.taxaJurosAnual / 100) / 12;
+      
+      if (taxaMensal > 0) {
+        const fatorPrice = Math.pow(1 + taxaMensal, prazoMeses);
+        parcelaMensalEstimada = valorFinanciado * (taxaMensal * fatorPrice) / (fatorPrice - 1);
+      } else {
+        parcelaMensalEstimada = valorFinanciado / prazoMeses;
+      }
       
       // Total dos custos de financiamento
       totalFinanciamento = jurosTotaisEstimados + (segurosObrigatorios * prazoAnos);
+    } else {
+      // Sem financiamento, o valor de arrematação permanece o total
+      valorArrematacaoParaCustos = data.valorArrematacao;
     }
+    
+    // Custo total de aquisição (usando o valor correto baseado no financiamento)
+    const custoTotalAquisicao = valorArrematacaoParaCustos + taxaLeiloeiro + itbi + 
+                               custosCartorarios + honorariosAdvogado + 
+                               data.valorDesocupacao + data.valorReforma;
     
     // Análise de rentabilidade para venda (apenas se objetivo for vender)
     let ganhoBruto: number | undefined;
@@ -91,9 +105,12 @@ export class CalculationService {
     
     // Análise de rentabilidade para aluguel (apenas se objetivo for alugar)
     let retornoAnualAluguel: number | undefined;
+    let rendaLiquidaMensal: number | undefined;
     
     if (data.objetivo === 'alugar' && data.valorAluguelMensal) {
-      const rendaAnual = data.valorAluguelMensal * 12;
+      // Descontar condomínio e IPTU da renda mensal
+      rendaLiquidaMensal = data.valorAluguelMensal - data.valorCondominio - iptuMensalFinal;
+      const rendaAnual = rendaLiquidaMensal * 12;
       retornoAnualAluguel = (rendaAnual / custoTotalAquisicao) * 100;
     }
     
@@ -118,7 +135,8 @@ export class CalculationService {
       custoTotalAquisicao,
       percentualEconomia,
       retornoAnualAluguel,
-      valorFinanciado
+      valorFinanciado,
+      rendaLiquidaMensal
     });
     
     return {
@@ -130,6 +148,8 @@ export class CalculationService {
       valorDesocupacao: data.valorDesocupacao,
       valorReforma: data.valorReforma,
       valorFinanciado,
+      valorEntradaFinal,
+      valorArrematacaoParaCustos, // Novo campo
       jurosAnuaisEstimados,
       jurosTotaisEstimados,
       segurosObrigatorios,
@@ -141,6 +161,7 @@ export class CalculationService {
       impostoRenda,
       ganhoLiquido,
       retornoAnualAluguel,
+      rendaLiquidaMensal, // Novo campo
       custoMensalTotal,
       custoTotalPeriodo,
       custoMensalComFinanciamento,
@@ -149,6 +170,24 @@ export class CalculationService {
       iptuMensalCalculado,
       alertas
     };
+  }
+  
+  private calcularIPTUPorFaixa(valorVenal: number): number {
+    if (!valorVenal || valorVenal <= 0) {
+      return 0;
+    }
+    
+    const faixa = CALCULATION_CONSTANTS.IPTU_FAIXAS.find(f => 
+      valorVenal >= f.valorMinimo && valorVenal <= f.valorMaximo
+    );
+    
+    if (!faixa) {
+      // Fallback para o cálculo padrão
+      return (valorVenal * CALCULATION_CONSTANTS.IPTU_ANUAL_PADRAO) / 12;
+    }
+    
+    const iptuAnual = (valorVenal * faixa.multiplicador) - faixa.subtrair;
+    return Math.max(0, iptuAnual / 12);
   }
   
   private gerarAlertas(data: ImovelData, calculos: any): Alerta[] {
@@ -181,13 +220,22 @@ export class CalculationService {
       });
     }
     
-    // Alerta para baixo retorno no aluguel
+    // Alerta para baixo retorno no aluguel (considerando renda líquida)
     if (data.objetivo === 'alugar' && calculos.retornoAnualAluguel && 
         calculos.retornoAnualAluguel < CALCULATION_CONSTANTS.LIMITE_RETORNO_BAIXO * 100) {
       alertas.push({
         tipo: 'warning',
         titulo: 'Baixo Retorno no Aluguel',
-        descricao: `O retorno anual está abaixo de ${CALCULATION_CONSTANTS.LIMITE_RETORNO_BAIXO * 100}%. Considere outras opções de investimento.`
+        descricao: `O retorno anual líquido está abaixo de ${CALCULATION_CONSTANTS.LIMITE_RETORNO_BAIXO * 100}%. Considere outras opções de investimento.`
+      });
+    }
+    
+    // Alerta para renda líquida negativa no aluguel
+    if (data.objetivo === 'alugar' && calculos.rendaLiquidaMensal && calculos.rendaLiquidaMensal <= 0) {
+      alertas.push({
+        tipo: 'warning',
+        titulo: 'Renda Líquida Negativa',
+        descricao: 'O valor do aluguel não cobre os gastos mensais (condomínio + IPTU). Você terá prejuízo mensal.'
       });
     }
     
@@ -221,4 +269,3 @@ export class CalculationService {
     return alertas;
   }
 }
-

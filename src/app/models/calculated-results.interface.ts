@@ -10,6 +10,8 @@ export interface CalculatedResults {
   
   // Custos de financiamento
   valorFinanciado?: number;
+  valorEntradaFinal?: number; // Novo campo
+  valorArrematacaoParaCustos: number; // Novo campo para distinguir o valor na tabela de custos
   jurosAnuaisEstimados?: number;
   jurosTotaisEstimados?: number;
   segurosObrigatorios?: number;
@@ -27,6 +29,7 @@ export interface CalculatedResults {
   
   // Análise de rentabilidade (aluguel)
   retornoAnualAluguel?: number;
+  rendaLiquidaMensal?: number; // Novo campo para renda líquida (descontando condomínio e IPTU)
   
   // Gastos mensais
   custoMensalTotal: number;
@@ -49,4 +52,3 @@ export interface Alerta {
   titulo: string;
   descricao: string;
 }
-

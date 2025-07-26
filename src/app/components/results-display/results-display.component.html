@@ -22,8 +22,16 @@
         <h4>Detalhamento dos Custos:</h4>
         <div class="cost-details">
           <div class="cost-item">
-            <span>Valor de Arrematação:</span>
+            <span>Valor de Arrematação {{ formData.seraFinanciado ? '(Entrada)' : '' }}:</span>
+            <span>{{ formatCurrency(results.valorArrematacaoParaCustos) }}</span>
+          </div>
+          <div *ngIf="formData.seraFinanciado && results.valorFinanciado" class="cost-item info-item">
+            <span>💡 Valor Total Arrematado:</span>
             <span>{{ formatCurrency(formData.valorArrematacao) }}</span>
+          </div>
+          <div *ngIf="formData.seraFinanciado && results.valorFinanciado" class="cost-item info-item">
+            <span>💡 Valor Financiado:</span>
+            <span>{{ formatCurrency(results.valorFinanciado) }}</span>
           </div>
           <div class="cost-item">
             <span>Taxa do Leiloeiro (5%):</span>
@@ -61,8 +69,20 @@
         <h4>💳 Informações de Financiamento:</h4>
         <div class="financing-details">
           <div class="cost-item">
-            <span>Valor Financiado (sobre arrematação):</span>
+            <span>Valor da Entrada:</span>
+            <span>{{ formatCurrency(results.valorEntradaFinal!) }}</span>
+          </div>
+          <div class="cost-item">
+            <span>Valor Financiado:</span>
             <span>{{ formatCurrency(results.valorFinanciado!) }}</span>
+          </div>
+          <div class="cost-item">
+            <span>Taxa de Juros Anual:</span>
+            <span>{{ formatPercentage(formData.taxaJurosAnual!) }}</span>
+          </div>
+          <div class="cost-item">
+            <span>Prazo do Financiamento:</span>
+            <span>{{ formData.prazoFinanciamentoAnos || 30 }} anos</span>
           </div>
           <div class="cost-item">
             <span>Juros Anuais Estimados:</span>
@@ -87,17 +107,25 @@
           <h5>📅 Estimativa de Gastos Mensais com Financiamento:</h5>
           <div class="financing-monthly-details">
             <div class="cost-item">
-              <span>Parcela Mensal Estimada:</span>
+              <span>Parcela Mensal Estimada (Principal + Juros):</span>
               <span>{{ formatCurrency(results.parcelaMensalEstimada!) }}</span>
             </div>
             <div class="cost-item">
-              <span>Seguros Obrigatórios Mensais:</span>
+              <span>Seguros Obrigatórios Mensais (DFI + MIP):</span>
               <span>{{ formatCurrency(results.segurosObrigatoriosMensal!) }}</span>
             </div>
             <div class="cost-item total-item">
               <span><strong>Total Mensal do Financiamento:</strong></span>
               <span><strong>{{ formatCurrency(results.parcelaMensalEstimada! + results.segurosObrigatoriosMensal!) }}</strong></span>
             </div>
+          </div>
+          <div class="financing-explanation">
+            <small>
+              💡 <strong>Composição da Parcela Mensal:</strong><br>
+              • <strong>Principal + Juros:</strong> Valor calculado pela Tabela Price<br>
+              • <strong>Seguros Obrigatórios:</strong> DFI (Danos Físicos do Imóvel) + MIP (Morte e Invalidez Permanente)<br>
+              • <strong>Taxa de Administração:</strong> Pode variar conforme o banco (não incluída na estimativa)
+            </small>
           </div>
         </div>
       </div>
@@ -142,12 +170,32 @@
       <div *ngIf="isAluguel && results.retornoAnualAluguel !== undefined" class="result-section">
         <h4>🏠 Análise de Aluguel:</h4>
         <div class="rental-analysis">
+          <div class="rental-breakdown">
+            <div class="cost-item">
+              <span>Valor do Aluguel Mensal:</span>
+              <span>{{ formatCurrency(formData.valorAluguelMensal!) }}</span>
+            </div>
+            <div class="cost-item">
+              <span>(-) Condomínio:</span>
+              <span class="negative">{{ formatCurrency(formData.valorCondominio) }}</span>
+            </div>
+            <div class="cost-item">
+              <span>(-) IPTU Mensal:</span>
+              <span class="negative">{{ formatCurrency(formData.valorIPTUMensal || results.iptuMensalCalculado) }}</span>
+            </div>
+            <div class="cost-item total-item">
+              <span><strong>Renda Líquida Mensal:</strong></span>
+              <span [class]="results.rendaLiquidaMensal! > 0 ? 'positive' : 'negative'">
+                <strong>{{ formatCurrency(results.rendaLiquidaMensal!) }}</strong>
+              </span>
+            </div>
+          </div>
           <div class="return-box" [class]="results.retornoAnualAluguel! >= 6 ? 'positive' : 'warning'">
             <div class="return-value">
-              Retorno Anual: {{ formatPercentage(results.retornoAnualAluguel!) }}
+              Retorno Anual Líquido: {{ formatPercentage(results.retornoAnualAluguel!) }}
             </div>
             <div class="return-detail">
-              Renda mensal: {{ formatCurrency(formData.valorAluguelMensal!) }}
+              Baseado na renda líquida (descontando condomínio e IPTU)
             </div>
           </div>
         </div>
@@ -168,7 +216,7 @@
               <span>{{ formatCurrency(formData.valorIPTUMensal || results.iptuMensalCalculado) }}</span>
             </div>
             <div *ngIf="formData.valorIPTUMensal === 0 || !formData.valorIPTUMensal" class="iptu-info">
-              <small>💡 IPTU calculado automaticamente: {{ formatCurrency(results.iptuMensalCalculado) }}</small>
+              <small>💡 IPTU calculado pela nova tabela de faixas: {{ formatCurrency(results.iptuMensalCalculado) }}</small>
             </div>
             <div class="cost-item">
               <span>Outros Gastos:</span>

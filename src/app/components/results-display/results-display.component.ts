@@ -45,4 +45,3 @@ export class ResultsDisplayComponent {
     return this.formData.objetivo === 'uso proprio';
   }
 }
-
