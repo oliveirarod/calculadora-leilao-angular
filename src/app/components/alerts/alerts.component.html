@@ -1,0 +1,16 @@
+<div *ngIf="alertas.length > 0" class="alerts-section">
+  <h4>{{ getAlertIcon('warning') }} Alertas e Recomendações</h4>
+  <div class="alerts-container">
+    <div 
+      *ngFor="let alerta of alertas" 
+      class="alert" 
+      [ngClass]="'alert-' + alerta.tipo">
+      <div class="alert-header">
+        <span class="alert-icon">{{ getAlertIcon(alerta.tipo) }}</span>
+        <span class="alert-title">{{ alerta.titulo }}</span>
+      </div>
+      <div class="alert-description">{{ alerta.descricao }}</div>
+    </div>
+  </div>
+</div>
+

@@ -1,0 +1,294 @@
+<div class="form-container">
+  <div class="card">
+    <div class="card-header">
+      <h2>🏠 Dados do Imóvel e Leilão</h2>
+      <p>Preencha as informações do imóvel e custos estimados</p>
+    </div>
+    
+    <form (ngSubmit)="onSubmit()" #imovelForm="ngForm" class="card-content">
+      <!-- Dados Básicos -->
+      <div class="section">
+        <h3>Dados Básicos</h3>
+        
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="objetivo">Objetivo da Compra *</label>
+            <select 
+              id="objetivo" 
+              name="objetivo" 
+              [(ngModel)]="formData.objetivo" 
+              (change)="onObjetivoChange()"
+              required>
+              <option value="alugar">Aluguel</option>
+              <option value="vender">Revenda</option>
+              <option value="uso proprio">Uso Próprio</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="valorAvaliacao">Valor de Avaliação (R$)</label>
+            <input 
+              type="number" 
+              id="valorAvaliacao" 
+              name="valorAvaliacao" 
+              [(ngModel)]="formData.valorAvaliacao"
+              (focus)="onInputFocus($event)"
+              (blur)="onInputBlur($event, 'valorAvaliacao')"
+              (ngModelChange)="onValorAvaliacaoChange()"
+              placeholder="Ex: 350000"
+              min="0">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="valorArrematacao">Valor de Arrematação (R$) *</label>
+          <input 
+            type="number" 
+            id="valorArrematacao" 
+            name="valorArrematacao" 
+            [(ngModel)]="formData.valorArrematacao"
+            (focus)="onInputFocus($event)"
+            (blur)="onInputBlur($event, 'valorArrematacao')"
+            placeholder="Ex: 250000"
+            min="0"
+            required>
+        </div>
+      </div>
+
+      <!-- Financiamento -->
+      <div class="section">
+        <h3>Financiamento</h3>
+        
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input 
+              type="checkbox" 
+              name="seraFinanciado" 
+              [(ngModel)]="formData.seraFinanciado"
+              (change)="onFinanciamentoChange()">
+            Será financiado?
+          </label>
+        </div>
+        
+        <div *ngIf="formData.seraFinanciado" class="conditional-section">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="taxaJurosAnual">Taxa de Juros Anual (%) *</label>
+              <input 
+                type="number" 
+                id="taxaJurosAnual" 
+                name="taxaJurosAnual" 
+                [(ngModel)]="formData.taxaJurosAnual"
+                (focus)="onInputFocus($event)"
+                (blur)="onInputBlur($event, 'taxaJurosAnual')"
+                placeholder="Ex: 10.5"
+                min="0"
+                step="0.1">
+            </div>
+            
+            <div class="form-group">
+              <label for="valorEntrada">Valor da Entrada (R$)</label>
+              <input 
+                type="number" 
+                id="valorEntrada" 
+                name="valorEntrada" 
+                [(ngModel)]="formData.valorEntrada"
+                (focus)="onInputFocus($event)"
+                (blur)="onInputBlur($event, 'valorEntrada')"
+                placeholder="Padrão: 5% do valor de arrematação"
+                min="0">
+              <small class="input-help">Deixe vazio para usar 5% automático (padrão para leilões)</small>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="prazoFinanciamentoAnos">Prazo do Financiamento (anos)</label>
+            <input 
+              type="number" 
+              id="prazoFinanciamentoAnos" 
+              name="prazoFinanciamentoAnos" 
+              [(ngModel)]="formData.prazoFinanciamentoAnos"
+              placeholder="Padrão: 30 anos"
+              min="1"
+              max="35">
+          </div>
+        </div>
+      </div>
+
+      <!-- Advogado -->
+      <div class="section">
+        <h3>Serviços Jurídicos</h3>
+        
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input 
+              type="checkbox" 
+              name="usaraAdvogado" 
+              [(ngModel)]="formData.usaraAdvogado"
+              (change)="onAdvogadoChange()">
+            Usará advogado?
+          </label>
+        </div>
+        
+        <div *ngIf="formData.usaraAdvogado" class="conditional-section">
+          <div class="form-group">
+            <label for="honorariosAdvogado">Honorários do Advogado (R$) *</label>
+            <input 
+              type="number" 
+              id="honorariosAdvogado" 
+              name="honorariosAdvogado" 
+              [(ngModel)]="formData.honorariosAdvogado"
+              (focus)="onInputFocus($event)"
+              (blur)="onInputBlur($event, 'honorariosAdvogado')"
+              placeholder="Ex: 5000"
+              min="0">
+          </div>
+        </div>
+      </div>
+
+      <!-- Taxas e Custos -->
+      <div class="section">
+        <h3>Taxas e Custos Adicionais</h3>
+        
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="percentualITBI">ITBI (%)</label>
+            <input 
+              type="number" 
+              id="percentualITBI" 
+              name="percentualITBI" 
+              [(ngModel)]="formData.percentualITBI"
+              min="0"
+              max="5"
+              step="0.1">
+          </div>
+          
+          <div class="form-group">
+            <label for="valorDesocupacao">Custo de Desocupação (R$)</label>
+            <input 
+              type="number" 
+              id="valorDesocupacao" 
+              name="valorDesocupacao" 
+              [(ngModel)]="formData.valorDesocupacao"
+              (focus)="onInputFocus($event)"
+              (blur)="onInputBlur($event, 'valorDesocupacao')"
+              placeholder="Ex: 15000"
+              min="0">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="valorReforma">Valor Estimado para Reforma (R$)</label>
+          <input 
+            type="number" 
+            id="valorReforma" 
+            name="valorReforma" 
+            [(ngModel)]="formData.valorReforma"
+            (focus)="onInputFocus($event)"
+            (blur)="onInputBlur($event, 'valorReforma')"
+            placeholder="Ex: 30000"
+            min="0">
+        </div>
+      </div>
+
+      <!-- Valores Condicionais -->
+      <div class="section" *ngIf="formData.objetivo !== 'uso proprio'">
+        <h3>Valores de Referência</h3>
+        
+        <div *ngIf="formData.objetivo === 'vender'" class="form-group">
+          <label for="valorEstimadoVenda">Valor Estimado de Venda (R$) *</label>
+          <input 
+            type="number" 
+            id="valorEstimadoVenda" 
+            name="valorEstimadoVenda" 
+            [(ngModel)]="formData.valorEstimadoVenda"
+            (focus)="onInputFocus($event)"
+            (blur)="onInputBlur($event, 'valorEstimadoVenda')"
+            placeholder="Ex: 400000"
+            min="0">
+        </div>
+        
+        <div *ngIf="formData.objetivo === 'alugar'" class="form-group">
+          <label for="valorAluguelMensal">Valor de Aluguel Mensal (R$) *</label>
+          <input 
+            type="number" 
+            id="valorAluguelMensal" 
+            name="valorAluguelMensal" 
+            [(ngModel)]="formData.valorAluguelMensal"
+            (focus)="onInputFocus($event)"
+            (blur)="onInputBlur($event, 'valorAluguelMensal')"
+            placeholder="Ex: 2500"
+            min="0">
+        </div>
+      </div>
+
+      <!-- Gastos Mensais -->
+      <div class="section">
+        <h3>Gastos Mensais</h3>
+        
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="valorCondominio">Condomínio Mensal (R$)</label>
+            <input 
+              type="number" 
+              id="valorCondominio" 
+              name="valorCondominio" 
+              [(ngModel)]="formData.valorCondominio"
+              (focus)="onInputFocus($event)"
+              (blur)="onInputBlur($event, 'valorCondominio')"
+              placeholder="Ex: 300"
+              min="0">
+          </div>
+          
+          <div class="form-group">
+            <label for="valorIPTUMensal">IPTU Mensal (R$)</label>
+            <input 
+              type="number" 
+              id="valorIPTUMensal" 
+              name="valorIPTUMensal" 
+              [(ngModel)]="formData.valorIPTUMensal"
+              (focus)="onInputFocus($event)"
+              (blur)="onInputBlur($event, 'valorIPTUMensal')"
+              (ngModelChange)="onIPTUManualChange()"
+              placeholder="Calculado automaticamente"
+              min="0">
+            <small class="input-help" *ngIf="iptuCalculadoAutomaticamente">
+              💡 Valor calculado automaticamente (0,7% do valor de avaliação/ano)
+            </small>
+          </div>
+        </div>
+        
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="outrosGastosMensais">Outros Gastos Mensais (R$)</label>
+            <input 
+              type="number" 
+              id="outrosGastosMensais" 
+              name="outrosGastosMensais" 
+              [(ngModel)]="formData.outrosGastosMensais"
+              (focus)="onInputFocus($event)"
+              (blur)="onInputBlur($event, 'outrosGastosMensais')"
+              placeholder="Ex: 100"
+              min="0">
+          </div>
+          
+          <div class="form-group">
+            <label for="periodoAnalise">Período de Análise (meses)</label>
+            <input 
+              type="number" 
+              id="periodoAnalise" 
+              name="periodoAnalise" 
+              [(ngModel)]="formData.periodoAnalise"
+              min="1"
+              max="60">
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary" [disabled]="!imovelForm.valid">
+        📊 Calcular Custos e Retorno
+      </button>
+    </form>
+  </div>
+</div>
+

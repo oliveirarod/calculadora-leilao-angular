@@ -1,0 +1,22 @@
+<div class="app-container">
+  <div class="header">
+    <h1>📊 Calculadora de Leilão de Imóveis</h1>
+    <p>Caixa Econômica Federal - Análise Completa de Custos e Retorno</p>
+  </div>
+
+  <div class="content">
+    <div class="form-section">
+      <app-input-form (formSubmit)="onFormSubmit($event)"></app-input-form>
+    </div>
+
+    <div *ngIf="calculatedResults && formData" class="results-section">
+      <app-results-display 
+        [results]="calculatedResults" 
+        [formData]="formData">
+      </app-results-display>
+    </div>
+  </div>
+</div>
+
+<router-outlet></router-outlet>
+
